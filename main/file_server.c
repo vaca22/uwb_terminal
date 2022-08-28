@@ -184,7 +184,7 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
     do{
         send_len=fread(send_buf,1,send_mtu,f);
         if(send_len>0){
-            if(httpd_resp_send_chunk(req, send_buf,send_mtu)!=ESP_OK){
+            if(httpd_resp_send_chunk(req, send_buf,send_len)!=ESP_OK){
                 httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
                 return ESP_FAIL;
             }
