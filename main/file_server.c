@@ -168,20 +168,15 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
         return http_resp_dir_html(req, filepath);
     }
 
-    int total=sdcard_get_file_size(fileList[sendIndex]);
-
-    char sizeString[20];
-    sprintf(sizeString,"%d",total);
 
 
-    FILE *f =  sdcard_fopen(fileList[sendIndex]);
-
-    sendIndex++;
-    if(sendIndex>=fileNum){
-        sendIndex=0;
+    FILE *f = fopen(filepath,"rb");
+    if (!f) {
+        ESP_LOGE(TAG, "Failed to read existing file : %s", filepath);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+        return ESP_FAIL;
     }
 
-    httpd_resp_set_hdr(req,"Content-Length",sizeString);
 
     httpd_resp_set_type(req, "image/jpeg");
     int index=0;
