@@ -9,8 +9,8 @@
 #include <stdio.h>
 
 
-extern char **fileList;
-extern int fileNum;
+//extern char **fileList;
+//extern int fileNum;
 void sdcard_init();
 void sdcard_search_filepath(const char *path);
 int sdcard_get_file_size(char* path);

@@ -22,7 +22,6 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
     wifi_init_sta();
     sdcard_init();
-    sdcard_search_filepath("/sdcard");
 
     start_file_server();
 
