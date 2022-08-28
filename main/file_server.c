@@ -183,7 +183,7 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 
     httpd_resp_set_hdr(req,"Content-Length",sizeString);
 
-
+    httpd_resp_set_type(req, "image/jpeg");
     int index=0;
     int send_len;
     do{
