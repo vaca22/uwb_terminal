@@ -5,8 +5,12 @@
 
 static TaskHandle_t file_server_task_h;
 static const char *TAG = "file_server";
+#define SCRATCH_BUFSIZE  2048
 #define FILE_PATH_MAX (256)
-
+struct file_server_data {
+    char base_path[ESP_VFS_PATH_MAX + 1];
+    char scratch[SCRATCH_BUFSIZE];
+};
 
 void preprocess_string(char *str) {
     char *p, *q;
@@ -35,7 +39,6 @@ void preprocess_string(char *str) {
     }
     *q = '\0';
 }
-
 
 static const char *get_path_from_uri(char *dest, const char *base_path, const char *uri2, size_t destsize) {
     char uri[260];
@@ -68,15 +71,10 @@ static const char *get_path_from_uri(char *dest, const char *base_path, const ch
 
 
 
-
-
 static esp_err_t http_resp_dir_html(httpd_req_t *req, const char *dirpath) {
 
-    int ff=xPortGetFreeHeapSize();
-    ESP_LOGE("remain","%d",ff);
 
         char entrypath[FILE_PATH_MAX];
-
 
 
         struct dirent *entry;
@@ -104,7 +102,10 @@ static esp_err_t http_resp_dir_html(httpd_req_t *req, const char *dirpath) {
                 continue;
             }
 
-            cJSON_AddItemToArray(files, cJSON_CreateString(entry->d_name));
+            cJSON *item = cJSON_CreateObject();
+            cJSON_AddStringToObject(item,"name",entry->d_name);
+            cJSON_AddNumberToObject(item,"size",entry_stat.st_size);
+            cJSON_AddItemToArray(files, item);
         }
 
         char * n=cJSON_Print(files);
@@ -155,6 +156,18 @@ static char send_buf[send_mtu];
 
 
 static esp_err_t download_get_handler(httpd_req_t *req) {
+    char filepath[FILE_PATH_MAX];
+    const char *filename = get_path_from_uri(filepath, ((struct file_server_data *) req->user_ctx)->base_path,
+                                             req->uri, sizeof(filepath));
+    if (!filename) {
+        ESP_LOGE(TAG, "Filename is too long");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
+        return ESP_FAIL;
+    }
+    if (filename[strlen(filename) - 1] == '/') {
+        return http_resp_dir_html(req, filepath);
+    }
+
     int total=sdcard_get_file_size(fileList[sendIndex]);
 
     char sizeString[20];
@@ -193,11 +206,20 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 
 static void file_server_task(void *pvParameters) {
 
+    const char *base_path = "/sdcard";
     static struct file_server_data *server_data = NULL;
+
 
     if (server_data) {
         ESP_LOGE(TAG, "File server already started");
     }
+
+    server_data = calloc(1, sizeof(struct file_server_data));
+    if (!server_data) {
+        ESP_LOGE(TAG, "Failed to allocate memory for server data");
+    }
+    strlcpy(server_data->base_path, base_path,
+            sizeof(server_data->base_path));
 
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
