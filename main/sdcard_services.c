@@ -24,6 +24,8 @@ static const char *TAG = "sdcard";
 
 #define SPI_DMA_CHAN    1
 
+char **fileList=NULL;
+int fileNum=0;
 
 void sdcard_init(){
     esp_err_t ret;
@@ -73,4 +75,53 @@ void sdcard_init(){
 
     sdmmc_card_print_info(stdout, card);
 
+}
+
+
+static void clean_file_list(){
+    if(fileList){
+        if(fileNum>0){
+            for(int k=0;k<fileNum;k++){
+                free(fileList[k]);
+            }
+        }
+        free(fileList);
+    }
+    fileList=NULL;
+    fileNum=0;
+}
+
+
+static void sdcard_search_fileNum(const char *path) {
+    struct dirent *entry;
+    DIR *dir = opendir(path);
+    if (!dir) {
+        return;
+    }
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type != DT_DIR) {
+            fileNum++;
+        }
+    }
+    fileList= (char **)malloc(fileNum*sizeof(char*));
+    closedir(dir);
+}
+
+void sdcard_search_filepath(const char *path) {
+    clean_file_list();
+    sdcard_search_fileNum(path);
+    struct dirent *entry;
+    DIR *dir = opendir(path);
+    if (!dir) {
+        return;
+    }
+    int index=0;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type != DT_DIR) {
+            fileList[index]= malloc(strlen(entry->d_name)+1);
+            memcpy(fileList[index],entry->d_name,strlen(entry->d_name)+1);
+            index++;
+        }
+    }
+    closedir(dir);
 }
