@@ -5,6 +5,8 @@
 
 static TaskHandle_t file_server_task_h;
 static const char *TAG = "file_server";
+#define FILE_PATH_MAX (256)
+
 
 void preprocess_string(char *str) {
     char *p, *q;
@@ -64,9 +66,93 @@ static const char *get_path_from_uri(char *dest, const char *base_path, const ch
 
 
 
+
+
+
+
+static esp_err_t http_resp_dir_html(httpd_req_t *req, const char *dirpath) {
+
+    int ff=xPortGetFreeHeapSize();
+    ESP_LOGE("remain","%d",ff);
+
+        char entrypath[FILE_PATH_MAX];
+
+
+
+        struct dirent *entry;
+        struct stat entry_stat;
+
+        DIR *dir = opendir(dirpath);
+        const size_t dirpath_len = strlen(dirpath);
+
+        strlcpy(entrypath, dirpath, sizeof(entrypath));
+
+        if (!dir) {
+            ESP_LOGE(TAG, "Failed to stat dir : %s", dirpath);
+            httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Directory does not exist");
+            return ESP_FAIL;
+        }
+        cJSON *files = cJSON_CreateArray();
+        while ((entry = readdir(dir)) != NULL) {
+
+            if (entry->d_type == DT_DIR) {
+                continue;
+            }
+            strlcpy(entrypath + dirpath_len, entry->d_name, sizeof(entrypath) - dirpath_len);
+            if (stat(entrypath, &entry_stat) == -1) {
+                ESP_LOGE(TAG, "Failed to stat: %s",  entry->d_name);
+                continue;
+            }
+
+            cJSON_AddItemToArray(files, cJSON_CreateString(entry->d_name));
+        }
+
+        char * n=cJSON_Print(files);
+        httpd_resp_sendstr_chunk(req, n);
+        httpd_resp_sendstr_chunk(req, NULL);
+        cJSON_Delete(files);
+        free(n);
+        free(dir);
+
+    httpd_resp_set_hdr(req, "Connection", "close");
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static int sendIndex=0;
 #define send_mtu 8192
 static char send_buf[send_mtu];
+
 
 static esp_err_t download_get_handler(httpd_req_t *req) {
     int total=sdcard_get_file_size(fileList[sendIndex]);
@@ -129,6 +215,11 @@ static void file_server_task(void *pvParameters) {
             .handler   = download_get_handler,
             .user_ctx  = server_data
     };
+
+
+
+
+
     httpd_register_uri_handler(server, &file_download);
 
     while (1){
