@@ -71,12 +71,18 @@ static char send_buf[send_mtu];
 static esp_err_t download_get_handler(httpd_req_t *req) {
     int total=sdcard_get_file_size(fileList[sendIndex]);
 
+    char sizeString[20];
+    sprintf(sizeString,"%d",total);
+
+
     FILE *f =  sdcard_fopen(fileList[sendIndex]);
 
     sendIndex++;
     if(sendIndex>=fileNum){
         sendIndex=0;
     }
+
+    httpd_resp_set_hdr(req,"Content-Length",sizeString);
 
 
     int index=0;
