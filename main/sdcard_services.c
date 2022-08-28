@@ -125,3 +125,24 @@ void sdcard_search_filepath(const char *path) {
     }
     closedir(dir);
 }
+
+
+
+
+int sdcard_get_file_size(char* my_path){
+    char path[50]="/sdcard/";
+    memcpy(path+ strlen(path),my_path, strlen(my_path)+1);
+    struct stat entry_stat;
+    if (stat(path, &entry_stat) == -1) {
+        return -1;
+    }
+    ESP_LOGI("file", "  %ld", entry_stat.st_size);
+    return entry_stat.st_size;
+}
+
+
+FILE* sdcard_fopen(char *my_path){
+    char path[50]="/sdcard/";
+    memcpy(path+ strlen(path),my_path, strlen(my_path)+1);
+    return fopen(path, "rb");
+}
