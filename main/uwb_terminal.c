@@ -17,9 +17,9 @@ void app_main(void)
     sdcard_init();
     sdcard_search_filepath("/sdcard");
 
-    ESP_LOGE("gaga","%d",fileNum);
-
-    for(int k=0;k<fileNum;k++){
-        ESP_LOGE("dddd","%s",fileList[k]);
-    }
+//    ESP_LOGE("gaga","%d",fileNum);
+//
+//    for(int k=0;k<fileNum;k++){
+//        ESP_LOGE("dddd","%s",fileList[k]);
+//    }
 }
